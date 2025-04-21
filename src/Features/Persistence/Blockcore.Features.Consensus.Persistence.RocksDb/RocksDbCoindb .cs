@@ -113,14 +113,22 @@ namespace Blockcore.Features.Consensus.Persistence.RocksDb
             {
                 this.performanceCounter.AddQueriedEntities(utxos.Length);
 
-                foreach (OutPoint outPoint in utxos)
+                var keys = new byte[utxos.Length][];
+                for (int i = 0; i < utxos.Length; i++)
+                    keys[i] = [coinsTable, .. utxos[i].ToBytes()];
+
+                var values = this.rocksdb.MultiGet(keys);
+
+                for (int i = 0; i < utxos.Length; i++)
                 {
-                    byte[] row = this.rocksdb.Get(new byte[] { coinsTable }.Concat(outPoint.ToBytes()).ToArray());
-                    Coins outputs = row != null ? this.dataStoreSerializer.Deserialize<Coins>(row) : null;
+                    var utxo = utxos[i];
+                    var bytes = values[i].Value;
 
-                    this.logger.LogDebug("Outputs for '{0}' were {1}.", outPoint, outputs == null ? "NOT loaded" : "loaded");
+                    Coins outputs = bytes != null ? this.dataStoreSerializer.Deserialize<Coins>(bytes) : null;
 
-                    res.UnspentOutputs.Add(outPoint, new UnspentOutput(outPoint, outputs));
+                    this.logger.LogDebug("Outputs for '{Utxo}' were {Loaded}.", utxo, outputs == null ? "NOT loaded" : "loaded");
+
+                    res.UnspentOutputs.Add(utxo, new UnspentOutput(utxo, outputs));
                 }
             }
 
