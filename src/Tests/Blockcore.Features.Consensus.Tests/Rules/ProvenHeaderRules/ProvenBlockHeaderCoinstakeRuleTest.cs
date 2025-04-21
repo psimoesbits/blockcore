@@ -39,7 +39,7 @@ namespace Blockcore.Features.Consensus.Tests.Rules.ProvenHeaderRules
 
             // Setup chained header and move it to the height below proven header activation height.
             this.ruleContext.ValidationContext.ChainedHeaderToValidate = new ChainedHeader(provenBlockHeader.PosBlockHeader, provenBlockHeader.GetHash(), null);
-            this.checkpoints.Setup(c => c.GetLastCheckpointHeight()).Returns(100);
+            this.checkpoints.Setup(c => c.LastCheckpointHeight).Returns(100);
 
             // When we run the validation rule, we should not hit any exceptions as rule will be skipped.
             Action ruleValidation = () => this.consensusRules.RegisterRule<ProvenHeaderCoinstakeRule>().Run(this.ruleContext);

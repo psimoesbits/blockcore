@@ -5,6 +5,7 @@ using Blockcore.Configuration.Settings;
 using Blockcore.NBitcoin;
 using Blockcore.Networks;
 using Blockcore.Utilities;
+using Blockcore.Utilities.Extensions;
 
 namespace Blockcore.Consensus.Checkpoints
 {
@@ -17,13 +18,6 @@ namespace Blockcore.Consensus.Checkpoints
         /// Obtains a height of the last checkpointed block.
         /// </summary>
         int LastCheckpointHeight { get; }
-
-        /// <summary>
-        /// Obtains a height of the last checkpointed block.
-        /// </summary>
-        /// <returns>Height of the last checkpointed block, or 0 if no checkpoint is available.</returns>
-        [Obsolete("Use the property LastCheckpoint instead")]
-        int GetLastCheckpointHeight();
 
         /// <summary>
         /// Checks if a block header hash at specific height is in violation with the hardcoded checkpoints.
@@ -85,33 +79,8 @@ namespace Blockcore.Consensus.Checkpoints
             this.consensusSettings = consensusSettings;
             this.network = network;
 
-            this.LastCheckpointHeight = this.GetLastCheckpointHeight();
-        }
-
-        /// <inheritdoc />
-        public int GetLastCheckpointHeight()
-        {
-            Dictionary<int, CheckpointInfo> checkpoints = this.GetCheckpoints();
-            return checkpoints.Count > 0 ? checkpoints.Keys.Last() : 0;
-        }
-
-        /// <summary>
-        /// Gets the last checkpoint.
-        /// </summary>
-        /// <returns>Last <see cref="CheckpointInfo"/> or null.</returns>
-        public CheckpointInfo GetLastCheckpoint(out int height)
-        {
             var checkpoints = this.GetCheckpoints();
-            if (checkpoints.Count == 0)
-            {
-                height = 0;
-                return null;
-            }
-            else
-            {
-                height = checkpoints.Keys.Max();
-                return checkpoints[height];
-            }
+            this.LastCheckpointHeight = !checkpoints.IsEmpty() ? checkpoints.Keys.Max() : 0;
         }
 
         /// <inheritdoc />

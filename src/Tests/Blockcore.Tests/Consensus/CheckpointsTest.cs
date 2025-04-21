@@ -25,7 +25,7 @@ namespace Blockcore.Tests.Consensus
         {
             var checkpoints = new Checkpoints();
 
-            int result = checkpoints.GetLastCheckpointHeight();
+            int result = checkpoints.LastCheckpointHeight;
 
             Assert.Equal(0, result);
         }
@@ -35,7 +35,7 @@ namespace Blockcore.Tests.Consensus
         {
             var checkpoints = new Checkpoints(this.network, new ConsensusSettings(NodeSettings.Default(this.network)) { UseCheckpoints = false });
 
-            int result = checkpoints.GetLastCheckpointHeight();
+            int result = checkpoints.LastCheckpointHeight;
 
             Assert.Equal(0, result);
         }
@@ -45,7 +45,7 @@ namespace Blockcore.Tests.Consensus
         {
             var checkpoints = new Checkpoints(this.network, new ConsensusSettings(NodeSettings.Default(this.network)) { UseCheckpoints = true });
 
-            int result = checkpoints.GetLastCheckpointHeight();
+            int result = checkpoints.LastCheckpointHeight;
 
             Assert.Equal(765000, result);
         }
@@ -55,7 +55,7 @@ namespace Blockcore.Tests.Consensus
         {
             var checkpoints = new Checkpoints(KnownNetworks.TestNet, new ConsensusSettings(NodeSettings.Default(KnownNetworks.StratisTest)) { UseCheckpoints = true });
 
-            int result = checkpoints.GetLastCheckpointHeight();
+            int result = checkpoints.LastCheckpointHeight;
 
             Assert.Equal(1400000, result);
         }
@@ -65,7 +65,7 @@ namespace Blockcore.Tests.Consensus
         {
             var checkpoints = new Checkpoints(KnownNetworks.RegTest, new ConsensusSettings(NodeSettings.Default(KnownNetworks.StratisTest)) { UseCheckpoints = true });
 
-            int result = checkpoints.GetLastCheckpointHeight();
+            int result = checkpoints.LastCheckpointHeight;
 
             Assert.Equal(0, result);
         }
@@ -75,7 +75,7 @@ namespace Blockcore.Tests.Consensus
         {
             var checkpoints = new Checkpoints(KnownNetworks.StratisMain, new ConsensusSettings(NodeSettings.Default(KnownNetworks.StratisTest)) { UseCheckpoints = true });
 
-            int result = checkpoints.GetLastCheckpointHeight();
+            int result = checkpoints.LastCheckpointHeight;
 
             Assert.Equal(1620000, result);
         }
@@ -85,7 +85,7 @@ namespace Blockcore.Tests.Consensus
         {
             var checkpoints = new Checkpoints(KnownNetworks.StratisTest, new ConsensusSettings(NodeSettings.Default(KnownNetworks.StratisTest)) { UseCheckpoints = true });
 
-            int result = checkpoints.GetLastCheckpointHeight();
+            int result = checkpoints.LastCheckpointHeight;
 
             Assert.Equal(1150000, result);
         }
@@ -95,7 +95,7 @@ namespace Blockcore.Tests.Consensus
         {
             var checkpoints = new Checkpoints(KnownNetworks.StratisRegTest, new ConsensusSettings(NodeSettings.Default(KnownNetworks.StratisTest)) { UseCheckpoints = true });
 
-            int result = checkpoints.GetLastCheckpointHeight();
+            int result = checkpoints.LastCheckpointHeight;
 
             Assert.Equal(0, result);
         }
@@ -106,12 +106,12 @@ namespace Blockcore.Tests.Consensus
             var consensusSettings = new ConsensusSettings(NodeSettings.Default(this.network)) { UseCheckpoints = false };
             var checkpoints = new Checkpoints(this.network, consensusSettings);
 
-            int result = checkpoints.GetLastCheckpointHeight();
+            int result = checkpoints.LastCheckpointHeight;
             Assert.Equal(0, result);
 
             consensusSettings.UseCheckpoints = true;
 
-            result = checkpoints.GetLastCheckpointHeight();
+            result = checkpoints.LastCheckpointHeight;
             Assert.Equal(765000, result);
         }
 

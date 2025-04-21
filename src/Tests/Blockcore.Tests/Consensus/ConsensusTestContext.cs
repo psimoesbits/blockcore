@@ -218,7 +218,7 @@ namespace Blockcore.Tests.Consensus
                 .Returns((CheckpointInfo)null);
 
             this.checkpoints
-                .Setup(c => c.GetLastCheckpointHeight())
+                .Setup(c => c.LastCheckpointHeight)
                 .Returns(checkpoints.OrderBy(h => h.Height).Last().Height);
 
             this.checkpoints

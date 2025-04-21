@@ -47,7 +47,7 @@ namespace Blockcore.Features.Consensus.Tests
         public void InIBDIfChainWorkIsLessThanMinimum()
         {
             BlockHeader blockHeader = this.network.Consensus.ConsensusFactory.CreateBlockHeader();
-            this.chainState.ConsensusTip = new ChainedHeader(blockHeader, blockHeader.GetHash(), this.checkpoints.GetLastCheckpointHeight() + 1);
+            this.chainState.ConsensusTip = new ChainedHeader(blockHeader, blockHeader.GetHash(), this.checkpoints.LastCheckpointHeight + 1);
             var blockDownloadState = new InitialBlockDownloadState(this.chainState, this.network, this.consensusSettings, this.checkpoints, this.loggerFactory.Object, DateTimeProvider.Default);
             Assert.True(blockDownloadState.IsInitialBlockDownload());
         }
@@ -63,7 +63,7 @@ namespace Blockcore.Features.Consensus.Tests
             // Block has a time sufficiently in the past that it can't be the tip.
             blockHeader.Time = ((uint) DateTimeOffset.Now.ToUnixTimeSeconds()) - (uint) this.network.MaxTipAge - 1;
 
-            this.chainState.ConsensusTip = new ChainedHeader(blockHeader, blockHeader.GetHash(), this.checkpoints.GetLastCheckpointHeight() + 1);
+            this.chainState.ConsensusTip = new ChainedHeader(blockHeader, blockHeader.GetHash(), this.checkpoints.LastCheckpointHeight + 1);
             var blockDownloadState = new InitialBlockDownloadState(this.chainState, this.network, this.consensusSettings, this.checkpoints, this.loggerFactory.Object, DateTimeProvider.Default);
             Assert.True(blockDownloadState.IsInitialBlockDownload());
         }
