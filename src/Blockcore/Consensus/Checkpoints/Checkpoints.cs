@@ -57,7 +57,10 @@ namespace Blockcore.Consensus.Checkpoints
         /// <summary>Consensus settings for the full node.</summary>
         private readonly ConsensusSettings consensusSettings;
 
-        public int LastCheckpointHeight { get; private set; }
+        public int LastCheckpointHeight =>
+            this.consensusSettings?.UseCheckpoints ?? false ?
+            this.GetCheckpoints().Keys.DefaultIfEmpty(0).Max() :
+            0;
 
         /// <summary>
         /// Initializes a new instance of the object.
@@ -78,9 +81,6 @@ namespace Blockcore.Consensus.Checkpoints
 
             this.consensusSettings = consensusSettings;
             this.network = network;
-
-            var checkpoints = this.GetCheckpoints();
-            this.LastCheckpointHeight = !checkpoints.IsEmpty() ? checkpoints.Keys.Max() : 0;
         }
 
         /// <inheritdoc />
