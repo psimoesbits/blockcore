@@ -338,8 +338,7 @@ namespace Blockcore.Consensus
                     // This might throw ConsensusErrorException but we don't wanna catch it because miner will catch it.
                     chainedHeader = this.chainedHeaderTree.CreateChainedHeaderOfMinedBlock(block);
 
-                    if (assumeValid)
-                        chainedHeader.IsAssumedValid = true;
+                    chainedHeader.IsAssumedValid = assumeValid;
                 }
 
                 validationContext = await this.partialValidator.ValidateAsync(chainedHeader, block).ConfigureAwait(false);
