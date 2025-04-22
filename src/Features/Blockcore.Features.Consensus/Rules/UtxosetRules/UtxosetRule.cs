@@ -91,7 +91,7 @@ namespace Blockcore.Features.Consensus.Rules.UtxosetRules
         {
             if (this.chainState.BlockStoreTip != null)
             {
-                int delaySec = 3;
+                int delaySec = 1;
                 int rewindDataWindow = cachedCoinView.CalculateRewindWindow();
                 HashHeightPair cachedCoinViewTip = cachedCoinView.GetTipHash();
 

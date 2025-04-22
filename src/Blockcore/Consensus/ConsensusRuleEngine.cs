@@ -11,6 +11,7 @@ using Blockcore.Consensus.Chain;
 using Blockcore.Consensus.Checkpoints;
 using Blockcore.Consensus.PerformanceCounters.Rules;
 using Blockcore.Consensus.Rules;
+using Blockcore.Interfaces;
 using Blockcore.NBitcoin;
 using Blockcore.Networks;
 using Blockcore.Utilities;
@@ -59,6 +60,9 @@ namespace Blockcore.Consensus
         /// <inheritdoc cref="ConsensusRulesPerformanceCounter"/>
         private ConsensusRulesPerformanceCounter performanceCounter;
 
+        /// <summary>Provider of IBD state.</summary>
+        private readonly IInitialBlockDownloadState initialBlockDownloadState;
+
         protected ConsensusRuleEngine(
             Network network,
             ILoggerFactory loggerFactory,
@@ -82,6 +86,7 @@ namespace Blockcore.Consensus
             Guard.NotNull(chainState, nameof(chainState));
             Guard.NotNull(invalidBlockHashStore, nameof(invalidBlockHashStore));
             Guard.NotNull(nodeStats, nameof(nodeStats));
+            Guard.NotNull(consensusRules, nameof(consensusRules));
 
             this.Network = network;
             this.ChainIndexer = chainIndexer;
@@ -90,15 +95,22 @@ namespace Blockcore.Consensus
             this.LoggerFactory = loggerFactory;
             this.ConsensusSettings = consensusSettings;
             this.Checkpoints = checkpoints;
-            this.ConsensusParams = this.Network.Consensus;
-            this.ConsensusSettings = consensusSettings;
+            
+            // Set up consensus parameters
+            this.ConsensusParams = network.Consensus;
+
             this.DateTimeProvider = dateTimeProvider;
             this.invalidBlockHashStore = invalidBlockHashStore;
             this.consensusRules = consensusRules;
-            this.LoggerFactory = loggerFactory;
-            this.logger = loggerFactory.CreateLogger(this.GetType().FullName);
-            this.NodeDeployments = nodeDeployments;
 
+            // Logger setup
+            this.logger = loggerFactory.CreateLogger(this.GetType().FullName);
+
+            // Initial Block Download State
+            this.initialBlockDownloadState = new InitialBlockDownloadState(
+                chainState, network, consensusSettings, checkpoints, loggerFactory, dateTimeProvider);
+
+            // Register node stats
             nodeStats.RegisterStats(this.AddBenchStats, StatsType.Benchmark, this.GetType().Name, 500);
         }
 
@@ -157,6 +169,11 @@ namespace Blockcore.Consensus
             RuleContext ruleContext = this.CreateRuleContext(validationContext);
 
             this.ExecuteRules(this.consensusRules.HeaderValidationRules, ruleContext);
+
+            if (this.initialBlockDownloadState.IsInitialBlockDownload())
+            {
+                header.IsAssumedValid = true;
+            }
 
             return validationContext;
         }

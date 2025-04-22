@@ -17,6 +17,9 @@ namespace Blockcore.Features.Consensus.Rules.CommonRules
         /// <exception cref="ConsensusErrors.BadBlockSignature">The block signature is not in the canonical format.</exception>
         public override void Run(RuleContext context)
         {
+            if (context.SkipValidation)
+                return;
+
             if (!PosBlockValidator.IsCanonicalBlockSignature((PosBlock)context.ValidationContext.BlockToValidate, true))
             {
                 ConsensusErrors.BadBlockSignature.Throw();
