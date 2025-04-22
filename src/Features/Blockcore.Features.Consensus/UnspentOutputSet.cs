@@ -74,7 +74,7 @@ namespace Blockcore.Features.Consensus
 
                 // In cases where an output is spent in the same block
                 // It will already exist as an input in the unspent list.
-                this.unspents.AddOrReplace(outpoint, unspentOutput);
+                this.unspents[outpoint] = unspentOutput;
             }
         }
 
