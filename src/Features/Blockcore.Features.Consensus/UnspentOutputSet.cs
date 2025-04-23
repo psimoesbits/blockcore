@@ -12,25 +12,30 @@ namespace Blockcore.Features.Consensus
 {
     public class UnspentOutputSet
     {
+        private readonly int concurrencyLevel = 2 * Environment.ProcessorCount;
         private ConcurrentDictionary<OutPoint, UnspentOutput> unspents;
 
         public TxOut GetOutputFor(TxIn txIn) => this.unspents.TryGet(txIn.PrevOut)?.Coins?.TxOut;
 
         public bool HaveInputs(Transaction tx) => 
-            (tx.Inputs.Count > 10 ? tx.Inputs.AsParallel() as IEnumerable<TxIn> : tx.Inputs)
+            (tx.Inputs.Count > this.concurrencyLevel ? tx.Inputs.AsParallel() as IEnumerable<TxIn> : tx.Inputs)
                 .All(txin => this.GetOutputFor(txin) != null);
 
         public UnspentOutput AccessCoins(OutPoint outpoint) => this.unspents.TryGet(outpoint);
 
         public Money GetValueIn(Transaction tx) =>
-            (tx.Inputs.Count > 10 ? tx.Inputs.AsParallel() as IEnumerable<TxIn> : tx.Inputs)
+            (tx.Inputs.Count > this.concurrencyLevel ? tx.Inputs.AsParallel() as IEnumerable<TxIn> : tx.Inputs)
                 .Select(txin => this.GetOutputFor(txin).Value).Sum();
 
         public void Update(Network network, Transaction transaction, int height)
         {
             if (!transaction.IsCoinBase)
-            {              
-                if (!(transaction.Inputs.Count > 10 ? transaction.Inputs.AsParallel() as IEnumerable<TxIn> : transaction.Inputs).All(input => this.AccessCoins(input.PrevOut).Spend()))
+            {
+                var inputs = transaction.Inputs.Count > this.concurrencyLevel ?
+                    transaction.Inputs.AsParallel() as IEnumerable<TxIn> :
+                    transaction.Inputs;
+
+                if (!inputs.All(input => this.AccessCoins(input.PrevOut).Spend()))
                 {
                     throw new InvalidOperationException("Unspendable coins are invalid at this point");
                 }
@@ -58,7 +63,7 @@ namespace Blockcore.Features.Consensus
                 this.unspents[outpoint] = unspentOutput;
             }
 
-            if (transaction.Outputs.Count > 10) 
+            if (transaction.Outputs.Count > this.concurrencyLevel) 
             {
                 transaction.Outputs.AsIndexedOutputs()
                     .AsParallel()
@@ -76,7 +81,7 @@ namespace Blockcore.Features.Consensus
         public void SetCoins(UnspentOutput[] coins)
         {
             if(this.unspents == default) 
-                this.unspents = new ConcurrentDictionary<OutPoint, UnspentOutput>(Environment.ProcessorCount, coins.Length);
+                this.unspents = new ConcurrentDictionary<OutPoint, UnspentOutput>(this.concurrencyLevel, coins.Length);
             else
                 this.unspents.Clear();
             
@@ -86,7 +91,7 @@ namespace Blockcore.Features.Consensus
         public void TrySetCoins(UnspentOutput[] coins)
         {
             if(this.unspents == default) 
-                this.unspents = new ConcurrentDictionary<OutPoint, UnspentOutput>(Environment.ProcessorCount, coins.Length);
+                this.unspents = new ConcurrentDictionary<OutPoint, UnspentOutput>(this.concurrencyLevel, coins.Length);
             else
                 this.unspents.Clear();
             
