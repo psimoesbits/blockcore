@@ -61,7 +61,7 @@ namespace Blockcore.Features.MemoryPool
         /// </summary>
         public ICoinView Inner { get; }
 
-        public void SaveChanges(IList<UnspentOutput> unspentOutputs, HashHeightPair HashHeightPair,
+        public void SaveChanges(ICollection<UnspentOutput> unspentOutputs, HashHeightPair HashHeightPair,
             HashHeightPair nextBlockHash, List<RewindData> rewindDataList = null)
         {
             throw new NotImplementedException();

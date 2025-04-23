@@ -252,7 +252,7 @@ namespace Blockcore.Features.Consensus.CoinViews.Coindb
             return res;
         }
 
-        public void SaveChanges(IList<UnspentOutput> unspentOutputs, HashHeightPair oldBlockHash, HashHeightPair nextBlockHash, List<RewindData> rewindDataList = null)
+        public void SaveChanges(ICollection<UnspentOutput> unspentOutputs, HashHeightPair oldBlockHash, HashHeightPair nextBlockHash, List<RewindData> rewindDataList = null)
         {
             int insertedEntities = 0;
 
