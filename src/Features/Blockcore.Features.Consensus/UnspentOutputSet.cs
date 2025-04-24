@@ -12,27 +12,33 @@ namespace Blockcore.Features.Consensus
 {
     public class UnspentOutputSet
     {
-        private readonly int concurrencyLevel = 2 * Environment.ProcessorCount;
+        private readonly int degreeOfParallelism = Environment.ProcessorCount;
+        private readonly int parallelismThreshold = 256; // number takens from a dictionary parallel insertion benchmarks
+
         private ConcurrentDictionary<OutPoint, UnspentOutput> unspents;
 
         public TxOut GetOutputFor(TxIn txIn) => this.unspents.TryGet(txIn.PrevOut)?.Coins?.TxOut;
 
         public bool HaveInputs(Transaction tx) => 
-            (tx.Inputs.Count > this.concurrencyLevel ? tx.Inputs.AsParallel() as IEnumerable<TxIn> : tx.Inputs)
+            (tx.Inputs.Count > this.parallelismThreshold ?
+             tx.Inputs.AsParallel().WithDegreeOfParallelism(this.degreeOfParallelism) as IEnumerable<TxIn> : 
+             tx.Inputs)
                 .All(txin => this.GetOutputFor(txin) != null);
 
         public UnspentOutput AccessCoins(OutPoint outpoint) => this.unspents.TryGet(outpoint);
 
         public Money GetValueIn(Transaction tx) =>
-            (tx.Inputs.Count > this.concurrencyLevel ? tx.Inputs.AsParallel() as IEnumerable<TxIn> : tx.Inputs)
+            (tx.Inputs.Count > this.parallelismThreshold ?
+             tx.Inputs.AsParallel().WithDegreeOfParallelism(this.degreeOfParallelism) as IEnumerable<TxIn> : 
+             tx.Inputs)
                 .Select(txin => this.GetOutputFor(txin).Value).Sum();
 
         public void Update(Network network, Transaction transaction, int height)
         {
             if (!transaction.IsCoinBase)
             {
-                var inputs = transaction.Inputs.Count > this.concurrencyLevel ?
-                    transaction.Inputs.AsParallel() as IEnumerable<TxIn> :
+                var inputs = transaction.Inputs.Count > this.parallelismThreshold ?
+                    transaction.Inputs.AsParallel().WithDegreeOfParallelism(this.degreeOfParallelism) as IEnumerable<TxIn> :
                     transaction.Inputs;
 
                 if (!inputs.All(input => this.AccessCoins(input.PrevOut).Spend()))
@@ -63,10 +69,11 @@ namespace Blockcore.Features.Consensus
                 this.unspents[outpoint] = unspentOutput;
             }
 
-            if (transaction.Outputs.Count > this.concurrencyLevel) 
+            if (transaction.Outputs.Count > this.parallelismThreshold) 
             {
                 transaction.Outputs.AsIndexedOutputs()
                     .AsParallel()
+                    .WithDegreeOfParallelism(this.degreeOfParallelism)
                     .ForAll(processing);
             }
             else
@@ -81,21 +88,27 @@ namespace Blockcore.Features.Consensus
         public void SetCoins(UnspentOutput[] coins)
         {
             if(this.unspents == default) 
-                this.unspents = new ConcurrentDictionary<OutPoint, UnspentOutput>(this.concurrencyLevel, coins.Length);
+                this.unspents = new ConcurrentDictionary<OutPoint, UnspentOutput>(this.degreeOfParallelism, coins.Length);
             else
                 this.unspents.Clear();
             
-            coins.AsParallel().ForAll(coin => { if (coin != null) this.unspents[coin.OutPoint] = coin; });
+            coins
+                .AsParallel()
+                .WithDegreeOfParallelism(this.degreeOfParallelism)
+                .ForAll(coin => { if (coin != null) this.unspents[coin.OutPoint] = coin; });
         }
 
         public void TrySetCoins(UnspentOutput[] coins)
         {
             if(this.unspents == default) 
-                this.unspents = new ConcurrentDictionary<OutPoint, UnspentOutput>(this.concurrencyLevel, coins.Length);
+                this.unspents = new ConcurrentDictionary<OutPoint, UnspentOutput>(this.degreeOfParallelism, coins.Length);
             else
                 this.unspents.Clear();
             
-            coins.AsParallel().ForAll(coin => { if (coin != null) this.unspents.TryAdd(coin.OutPoint, coin); });
+            coins
+                .AsParallel()
+                .WithDegreeOfParallelism(this.degreeOfParallelism)
+                .ForAll(coin => { if (coin != null) this.unspents.TryAdd(coin.OutPoint, coin); });
         }
 
         public ICollection<UnspentOutput> GetCoins() => this.unspents.Values;
