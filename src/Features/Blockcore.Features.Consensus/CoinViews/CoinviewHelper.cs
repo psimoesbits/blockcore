@@ -20,7 +20,7 @@ namespace Blockcore.Features.Consensus.CoinViews
         /// <param name="block">The block with the transactions.</param>
         /// <param name="enforceBIP30">Whether to enforce look up of the transaction id itself and not only the reference to previous transaction id.</param>
         /// <returns>A list of transaction ids to fetch from store</returns>
-        public OutPoint[] GetIdsToFetch(Block block, bool enforceBIP30)
+        public IReadOnlyCollection<OutPoint> GetIdsToFetch(Block block, bool enforceBIP30)
         {
             var ids = new ConcurrentBag<OutPoint>();
             var trx = new HashSet<uint256>(block.Transactions.Select(tx => tx.GetHash()));
@@ -92,7 +92,7 @@ namespace Blockcore.Features.Consensus.CoinViews
                 }
             }
 
-            return [.. ids];
+            return ids;
         }
     }
 }

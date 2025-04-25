@@ -39,22 +39,22 @@ namespace Blockcore.Features.Consensus.CoinViews
             return this.tipHash;
         }
 
-        public void CacheCoins(OutPoint[] utxos)
+        public void CacheCoins(IReadOnlyCollection<OutPoint> utxos)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc />
-        public FetchCoinsResponse FetchCoins(OutPoint[] txIds)
+        public FetchCoinsResponse FetchCoins(IReadOnlyCollection<OutPoint> txIds)
         {
             Guard.NotNull(txIds, nameof(txIds));
 
             using (this.lockobj.LockRead())
             {
                 var result = new FetchCoinsResponse();
-                for (int i = 0; i < txIds.Length; i++)
+                foreach (var txId in txIds)
                 {
-                    var output = this.unspents.TryGet(txIds[i]);
+                    var output = this.unspents.TryGet(txId);
 
                     if (output != null)
                         result.UnspentOutputs.Add(output.OutPoint, output);

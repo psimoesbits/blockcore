@@ -23,8 +23,8 @@ namespace Blockcore.Features.Consensus.Tests.CoinViews
             fetchCoinsResponse.UnspentOutputs.Add(unspentOutputs[1].OutPoint, unspentOutputs[1]);
 
             Assert.Equal(2, fetchCoinsResponse.UnspentOutputs.Count);
-            Assert.Equal((uint)1, fetchCoinsResponse.UnspentOutputs.ToList()[0].Value.Coins.Height);
-            Assert.Equal((uint)2, fetchCoinsResponse.UnspentOutputs.ToList()[1].Value.Coins.Height);
+            Assert.Equal((uint)1, fetchCoinsResponse.UnspentOutputs[unspentOutputs[0].OutPoint].Coins.Height);
+            Assert.Equal((uint)2, fetchCoinsResponse.UnspentOutputs[unspentOutputs[1].OutPoint].Coins.Height);
         }
     }
 }

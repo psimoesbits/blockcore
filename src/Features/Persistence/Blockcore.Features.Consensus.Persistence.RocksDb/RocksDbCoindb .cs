@@ -105,23 +105,29 @@ namespace Blockcore.Features.Consensus.Persistence.RocksDb
             return this.blockHash;
         }
 
-        public FetchCoinsResponse FetchCoins(OutPoint[] utxos)
+        public FetchCoinsResponse FetchCoins(IReadOnlyCollection<OutPoint> utxos)
         {
             FetchCoinsResponse res = new FetchCoinsResponse();
 
             using (new StopwatchDisposable(o => this.performanceCounter.AddQueryTime(o)))
             {
-                this.performanceCounter.AddQueriedEntities(utxos.Length);
+                this.performanceCounter.AddQueriedEntities(utxos.Count);
 
-                var keys = new byte[utxos.Length][];
-                for (int i = 0; i < utxos.Length; i++)
-                    keys[i] = [coinsTable, .. utxos[i].ToBytes()];
+                var keys = new byte[utxos.Count][];
+
+                var i = 0;
+                foreach (var utxo in utxos)
+                {
+                    keys[i] = [coinsTable, .. utxo.ToBytes()];
+
+                    i++;
+                }
 
                 var values = this.rocksdb.MultiGet(keys);
 
-                for (int i = 0; i < utxos.Length; i++)
+                i = 0;
+                foreach(var utxo in utxos)
                 {
-                    var utxo = utxos[i];
                     var bytes = values[i].Value;
 
                     Coins outputs = bytes != null ? this.dataStoreSerializer.Deserialize<Coins>(bytes) : null;
@@ -129,6 +135,8 @@ namespace Blockcore.Features.Consensus.Persistence.RocksDb
                     this.logger.LogDebug("Outputs for '{Utxo}' were {Loaded}.", utxo, outputs == null ? "NOT loaded" : "loaded");
 
                     res.UnspentOutputs.Add(utxo, new UnspentOutput(utxo, outputs));
+
+                    i++;
                 }
             }
 

@@ -85,10 +85,10 @@ namespace Blockcore.Features.Consensus
             }
         }
 
-        public void SetCoins(UnspentOutput[] coins)
+        public void SetCoins(ICollection<UnspentOutput> coins)
         {
             if(this.unspents == default) 
-                this.unspents = new ConcurrentDictionary<OutPoint, UnspentOutput>(this.degreeOfParallelism, coins.Length);
+                this.unspents = new ConcurrentDictionary<OutPoint, UnspentOutput>(this.degreeOfParallelism, coins.Count);
             else
                 this.unspents.Clear();
             
@@ -113,6 +113,6 @@ namespace Blockcore.Features.Consensus
 
         public ICollection<UnspentOutput> GetCoins() => this.unspents.Values;
 
-        public IList<UnspentOutput> GetCoins(uint256 trxid) => [.. this.unspents.Where(w => w.Key.Hash == trxid).Select(u => u.Value)];
+        public IEnumerable<UnspentOutput> GetCoins(uint256 trxid) => this.unspents.Where(w => w.Key.Hash == trxid).Select(u => u.Value);
     }
 }

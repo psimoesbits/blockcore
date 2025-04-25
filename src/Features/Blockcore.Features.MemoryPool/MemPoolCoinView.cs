@@ -72,7 +72,7 @@ namespace Blockcore.Features.MemoryPool
             throw new NotImplementedException();
         }
 
-        public FetchCoinsResponse FetchCoins(OutPoint[] txIds)
+        public FetchCoinsResponse FetchCoins(IReadOnlyCollection<OutPoint> txIds)
         {
             throw new NotImplementedException();
         }
@@ -87,7 +87,7 @@ namespace Blockcore.Features.MemoryPool
             throw new NotImplementedException();
         }
 
-        public void CacheCoins(OutPoint[] utxos)
+        public void CacheCoins(IReadOnlyCollection<OutPoint> utxos)
         {
             throw new NotImplementedException();
         }

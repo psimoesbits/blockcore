@@ -48,7 +48,7 @@ namespace Blockcore.Features.Consensus.CoinViews.Coindb
         /// If an item of <see cref="FetchCoinsResponse.UnspentOutputs"/> is <c>null</c>, it means that outpoint is spent.
         /// </para>
         /// </returns>
-        FetchCoinsResponse FetchCoins(OutPoint[] utxos);
+        FetchCoinsResponse FetchCoins(IReadOnlyCollection<OutPoint> utxos);
 
         /// <summary>
         /// Rewinds the coinview to the last saved state.

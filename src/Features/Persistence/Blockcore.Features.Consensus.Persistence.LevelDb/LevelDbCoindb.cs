@@ -104,20 +104,20 @@ namespace Blockcore.Features.Consensus.Persistence.LevelDb
             return this.blockHash;
         }
 
-        public FetchCoinsResponse FetchCoins(OutPoint[] utxos)
+        public FetchCoinsResponse FetchCoins(IReadOnlyCollection<OutPoint> utxos)
         {
             FetchCoinsResponse res = new FetchCoinsResponse();
 
             using (new StopwatchDisposable(o => this.performanceCounter.AddQueryTime(o)))
             {
-                this.performanceCounter.AddQueriedEntities(utxos.Length);
+                this.performanceCounter.AddQueriedEntities(utxos.Count);
 
                 foreach (OutPoint outPoint in utxos)
                 {
                     byte[] row = this.leveldb.Get(new byte[] { coinsTable }.Concat(outPoint.ToBytes()).ToArray());
                     Coins outputs = row != null ? this.dataStoreSerializer.Deserialize<Coins>(row) : null;
 
-                    this.logger.LogDebug("Outputs for '{0}' were {1}.", outPoint, outputs == null ? "NOT loaded" : "loaded");
+                    this.logger.LogDebug("Outputs for '{outPoint}' were {loaded}.", outPoint, outputs == null ? "NOT loaded" : "loaded");
 
                     res.UnspentOutputs.Add(outPoint, new UnspentOutput(outPoint, outputs));
                 }

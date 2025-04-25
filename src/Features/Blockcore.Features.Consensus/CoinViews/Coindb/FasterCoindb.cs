@@ -214,14 +214,14 @@ namespace Blockcore.Features.Consensus.CoinViews.Coindb
             }
         }
 
-        public FetchCoinsResponse FetchCoins(OutPoint[] utxos)
+        public FetchCoinsResponse FetchCoins(IReadOnlyCollection<OutPoint> utxos)
         {
             FetchCoinsResponse res = new FetchCoinsResponse();
             using (var session = this.db.NewSession())
             {
                 using (new StopwatchDisposable(o => this.performanceCounter.AddQueryTime(o)))
                 {
-                    this.performanceCounter.AddQueriedEntities(utxos.Length);
+                    this.performanceCounter.AddQueriedEntities(utxos.Count);
 
                     Types.StoreInput input = new Types.StoreInput();
                     Types.StoreOutput output = new Types.StoreOutput();

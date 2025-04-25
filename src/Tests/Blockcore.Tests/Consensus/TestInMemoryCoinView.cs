@@ -46,18 +46,19 @@ namespace Blockcore.Tests.Consensus
         }
 
         /// <inheritdoc />
-        public FetchCoinsResponse FetchCoins(OutPoint[] txIds)
+        public FetchCoinsResponse FetchCoins(IReadOnlyCollection<OutPoint> txIds)
         {
             Guard.NotNull(txIds, nameof(txIds));
 
             using (this.lockobj.LockRead())
             {
                 var result = new FetchCoinsResponse();
-                for (int i = 0; i < txIds.Length; i++)
+                foreach (var txId in txIds)
                 {
-                    var output = this.unspents.TryGet(txIds[i]);
+                    var output = this.unspents.TryGet(txId);
 
-                    result.UnspentOutputs.Add(output.OutPoint, output);
+                    if (output != null)
+                        result.UnspentOutputs.Add(output.OutPoint, output);
                 }
 
                 return result;
@@ -95,7 +96,7 @@ namespace Blockcore.Tests.Consensus
             }
         }
 
-        public void CacheCoins(OutPoint[] utxos)
+        public void CacheCoins(IReadOnlyCollection<OutPoint> utxos)
         {
             throw new NotImplementedException();
         }

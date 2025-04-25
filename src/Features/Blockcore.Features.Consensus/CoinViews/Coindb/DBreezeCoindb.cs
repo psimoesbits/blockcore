@@ -99,7 +99,7 @@ namespace Blockcore.Features.Consensus.CoinViews.Coindb
             return tipHash;
         }
 
-        public FetchCoinsResponse FetchCoins(OutPoint[] utxos)
+        public FetchCoinsResponse FetchCoins(IReadOnlyCollection<OutPoint> utxos)
         {
             FetchCoinsResponse res = new FetchCoinsResponse();
             using (DBreeze.Transactions.Transaction transaction = this.CreateTransaction())
@@ -109,7 +109,7 @@ namespace Blockcore.Features.Consensus.CoinViews.Coindb
 
                 using (new StopwatchDisposable(o => this.performanceCounter.AddQueryTime(o)))
                 {
-                    this.performanceCounter.AddQueriedEntities(utxos.Length);
+                    this.performanceCounter.AddQueriedEntities(utxos.Count);
 
                     foreach (OutPoint outPoint in utxos)
                     {

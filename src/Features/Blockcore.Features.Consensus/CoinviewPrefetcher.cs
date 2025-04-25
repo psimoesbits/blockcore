@@ -109,13 +109,13 @@ namespace Blockcore.Features.Consensus
             if (currentHeader.Height > this.checkpoints.LastCheckpointHeight)
                 enforceBIP30 = DeploymentFlags.EnforceBIP30ForBlock(currentHeader, this.chainIndexer.Network.Consensus, this.chainIndexer);
 
-            OutPoint[] idsToCache = this.coinviewHelper.GetIdsToFetch(block, enforceBIP30);
+            var idsToCache = this.coinviewHelper.GetIdsToFetch(block, enforceBIP30);
 
-            if (idsToCache.Length != 0)
+            if (idsToCache.Count != 0)
             {
                 this.coinview.CacheCoins(idsToCache);
 
-                this.logger.LogDebug("Block '{0}' had {1} ids pre-fetched.", currentHeader.Height, idsToCache.Length);
+                this.logger.LogDebug("Block '{0}' had {1} ids pre-fetched.", currentHeader.Height, idsToCache.Count);
             }
 
             return Task.CompletedTask;

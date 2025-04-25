@@ -1,11 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using Blockcore.Base;
 using Blockcore.Configuration.Settings;
-using Blockcore.Consensus;
 using Blockcore.Consensus.Checkpoints;
 using Blockcore.Consensus.TransactionInfo;
 using Blockcore.Features.Consensus.CoinViews.Coindb;
@@ -22,6 +20,10 @@ namespace Blockcore.Features.Consensus.CoinViews
     /// </summary>
     public class CachedCoinView : ICoinView
     {
+        private readonly int degreeOfParallelism = Math.Min(Environment.ProcessorCount, 512);
+        private readonly int degreeOfParallelismHalved = Math.Max(1, Math.Min(Environment.ProcessorCount, 512));
+        private readonly int parallelismThreshold = 256; // number takens from a dictionary parallel insertion benchmarks
+
         /// <summary>
         /// Item of the coinview cache that holds information about the unspent outputs
         /// as well as the status of the item in relation to the underlying storage.
@@ -111,7 +113,7 @@ namespace Blockcore.Features.Consensus.CoinViews
 
         /// <summary>Information about cached items mapped by transaction IDs the cached item's unspent outputs belong to.</summary>
         /// <remarks>All access to this object has to be protected by <see cref="lockobj"/>.</remarks>
-        private readonly Dictionary<OutPoint, CacheItem> cachedUtxoItems;
+        private readonly IDictionary<OutPoint, CacheItem> cachedUtxoItems;
 
         /// <summary>Number of items in the cache.</summary>
         /// <remarks>The getter violates the lock contract on <see cref="cachedUtxoItems"/>, but the lock here is unnecessary as the <see cref="cachedUtxoItems"/> is marked as readonly.</remarks>
@@ -156,7 +158,7 @@ namespace Blockcore.Features.Consensus.CoinViews
             this.stakeChainStore = stakeChainStore;
             this.rewindDataIndexCache = rewindDataIndexCache;
             this.lockobj = new object();
-            this.cachedUtxoItems = new Dictionary<OutPoint, CacheItem>();
+            this.cachedUtxoItems = new ConcurrentDictionary<OutPoint, CacheItem>();
             this.performanceCounter = new CachePerformanceCounter(this.dateTimeProvider);
             this.lastCacheFlushTime = this.dateTimeProvider.GetUtcNow();
             this.cachedRewindData = new Dictionary<int, RewindData>();
@@ -184,7 +186,7 @@ namespace Blockcore.Features.Consensus.CoinViews
         }
 
         /// <inheritdoc />
-        public void CacheCoins(OutPoint[] utxos)
+        public void CacheCoins(IReadOnlyCollection<OutPoint> utxos)
         {
             lock (this.lockobj)
             {
@@ -193,17 +195,17 @@ namespace Blockcore.Features.Consensus.CoinViews
                 {
                     if (!this.cachedUtxoItems.TryGetValue(outPoint, out CacheItem cache))
                     {
-                        this.logger.LogDebug("Prefetch Utxo '{0}' not found in cache.", outPoint);
+                        this.logger.LogDebug("Prefetch Utxo '{outPoint}' not found in cache.", outPoint);
                         missedOutpoint.Add(outPoint);
                     }
                 }
 
                 this.performanceCounter.AddCacheMissCount(missedOutpoint.Count);
-                this.performanceCounter.AddCacheHitCount(utxos.Length - missedOutpoint.Count);
+                this.performanceCounter.AddCacheHitCount(utxos.Count - missedOutpoint.Count);
 
                 if (missedOutpoint.Count > 0)
                 {
-                    FetchCoinsResponse fetchedCoins = this.coindb.FetchCoins(missedOutpoint.ToArray());
+                    FetchCoinsResponse fetchedCoins = this.coindb.FetchCoins(missedOutpoint);
                     foreach (var unspentOutput in fetchedCoins.UnspentOutputs)
                     {
                         var cache = new CacheItem()
@@ -213,7 +215,7 @@ namespace Blockcore.Features.Consensus.CoinViews
                             OutPoint = unspentOutput.Key,
                             Coins = unspentOutput.Value.Coins
                         };
-                        this.logger.LogDebug("Prefetch CacheItem added to the cache, UTXO: '{0}', Coin:'{1}'.", cache.OutPoint, cache.Coins);
+                        this.logger.LogDebug("Prefetch CacheItem added to the cache, UTXO: '{outpoint}', Coin:'{coin}'.", cache.OutPoint, cache.Coins);
                         this.cachedUtxoItems.Add(cache.OutPoint, cache);
                         this.cacheSizeBytes += cache.GetSize;
                     }
@@ -222,40 +224,52 @@ namespace Blockcore.Features.Consensus.CoinViews
         }
 
         /// <inheritdoc />
-        public FetchCoinsResponse FetchCoins(OutPoint[] utxos)
+        public FetchCoinsResponse FetchCoins(IReadOnlyCollection<OutPoint> utxos)
         {
             Guard.NotNull(utxos, nameof(utxos));
 
             var result = new FetchCoinsResponse();
-            var missedOutpoint = new List<OutPoint>();
+            var missedOutpoint = new ConcurrentBag<OutPoint>();
 
             lock (this.lockobj)
             {
-                foreach (OutPoint outPoint in utxos)
+                void processingTryFetch(OutPoint outPoint)
                 {
                     if (!this.cachedUtxoItems.TryGetValue(outPoint, out CacheItem cache))
                     {
-                        this.logger.LogDebug("Utxo '{0}' not found in cache.", outPoint);
+                        this.logger.LogDebug("Utxo '{outPoint}' not found in cache.", outPoint);
                         missedOutpoint.Add(outPoint);
                     }
                     else
                     {
-                        this.logger.LogDebug("Utxo '{0}' found in cache, UTXOs:'{1}'.", outPoint, cache.Coins);
-                        result.UnspentOutputs.Add(outPoint, new UnspentOutput(outPoint, cache.Coins));
+                        this.logger.LogDebug("Utxo '{outPoint}' found in cache, UTXOs:'{coins}'.", outPoint, cache.Coins);
+                        result.UnspentOutputs.TryAdd(outPoint, new UnspentOutput(outPoint, cache.Coins));
+                    }
+                }
+
+                if (utxos.Count > this.parallelismThreshold)
+                {
+                    utxos
+                        .AsParallel()
+                        .WithDegreeOfParallelism(this.degreeOfParallelism)
+                        .ForAll(outpoint => processingTryFetch(outpoint));
+                }
+                else
+                {
+                    foreach (OutPoint outPoint in utxos)
+                    {
+                        processingTryFetch(outPoint);
                     }
                 }
 
                 this.performanceCounter.AddMissCount(missedOutpoint.Count);
-                this.performanceCounter.AddHitCount(utxos.Length - missedOutpoint.Count);
+                this.performanceCounter.AddHitCount(utxos.Count - missedOutpoint.Count);
 
-                if (missedOutpoint.Count > 0)
+                if (!missedOutpoint.IsEmpty)
                 {
-                    this.logger.LogDebug("{0} cache missed transaction needs to be loaded from underlying CoinView.", missedOutpoint.Count);
-                    FetchCoinsResponse fetchedCoins = this.coindb.FetchCoins(missedOutpoint.ToArray());
-
-                    foreach (var unspentOutput in fetchedCoins.UnspentOutputs)
+                    void processAddToCache(KeyValuePair<OutPoint, UnspentOutput> unspentOutput)
                     {
-                        result.UnspentOutputs.Add(unspentOutput.Key, unspentOutput.Value);
+                        result.UnspentOutputs.TryAdd(unspentOutput.Key, unspentOutput.Value);
 
                         var cache = new CacheItem()
                         {
@@ -265,9 +279,27 @@ namespace Blockcore.Features.Consensus.CoinViews
                             Coins = unspentOutput.Value.Coins
                         };
 
-                        this.logger.LogDebug("CacheItem added to the cache, UTXO '{0}', Coin:'{1}'.", cache.OutPoint, cache.Coins);
+                        this.logger.LogDebug("CacheItem added to the cache, UTXO '{outpoint}', Coin:'{coins}'.", cache.OutPoint, cache.Coins);
                         this.cachedUtxoItems.Add(cache.OutPoint, cache);
                         this.cacheSizeBytes += cache.GetSize;
+                    }
+
+                    this.logger.LogDebug("{count} cache missed transaction needs to be loaded from underlying CoinView.", missedOutpoint.Count);
+                    FetchCoinsResponse fetchedCoins = this.coindb.FetchCoins(missedOutpoint);
+
+                    if (fetchedCoins.UnspentOutputs.Count > this.parallelismThreshold)
+                    {
+                        fetchedCoins.UnspentOutputs
+                            .AsParallel()
+                            .WithDegreeOfParallelism(this.degreeOfParallelism)
+                            .ForAll(unspentOutput => processAddToCache(unspentOutput));
+                    }
+                    else
+                    {
+                        foreach (var unspentOutput in fetchedCoins.UnspentOutputs)
+                        {
+                            processAddToCache(unspentOutput);
+                        }
                     }
                 }
 

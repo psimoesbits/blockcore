@@ -42,13 +42,13 @@ namespace Blockcore.Features.Consensus.CoinViews
         /// If an item of <see cref="FetchCoinsResponse.UnspentOutputs"/> is <c>null</c>, it means that outpoint is spent.
         /// </para>
         /// </returns>
-        FetchCoinsResponse FetchCoins(OutPoint[] utxos);
+        FetchCoinsResponse FetchCoins(IReadOnlyCollection<OutPoint> utxos);
 
         /// <summary>
         /// Check if given utxos are not in cache then pull them from disk and place them in to the cache
         /// </summary>
         /// <param name="utxos">Transaction output identifiers for which to retrieve information about unspent outputs.</param>
-        void CacheCoins(OutPoint[] utxos);
+        void CacheCoins(IReadOnlyCollection<OutPoint> utxos);
 
         /// <summary>
         /// Rewinds the coinview to the last saved state.

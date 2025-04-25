@@ -144,10 +144,10 @@ namespace Blockcore.Features.Consensus.Rules.UtxosetRules
             this.Logger.LogDebug("Loading UTXO set of the new block.");
             utxoRuleContext.UnspentOutputSet = new UnspentOutputSet();
 
-            bool enforceBIP30 = context.ValidationContext.ChainedHeaderToValidate.Height > this.Parent.Checkpoints.LastCheckpointHeight ? context.Flags.EnforceBIP30 : false;
-            OutPoint[] ids = this.coinviewHelper.GetIdsToFetch(context.ValidationContext.BlockToValidate, enforceBIP30);
+            bool enforceBIP30 = context.ValidationContext.ChainedHeaderToValidate.Height > this.Parent.Checkpoints.LastCheckpointHeight && context.Flags.EnforceBIP30;
+            var ids = this.coinviewHelper.GetIdsToFetch(context.ValidationContext.BlockToValidate, enforceBIP30);
             FetchCoinsResponse coins = this.PowParent.UtxoSet.FetchCoins(ids);
-            utxoRuleContext.UnspentOutputSet.SetCoins(coins.UnspentOutputs.Values.ToArray());
+            utxoRuleContext.UnspentOutputSet.SetCoins(coins.UnspentOutputs.Values);
 
             return Task.CompletedTask;
         }

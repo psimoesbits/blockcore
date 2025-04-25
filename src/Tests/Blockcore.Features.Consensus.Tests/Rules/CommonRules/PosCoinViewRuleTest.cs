@@ -73,15 +73,15 @@ namespace Blockcore.Features.Consensus.Tests.Rules.CommonRules
                 new Mock<IConnectionManager>().Object, new Mock<INodeStats>().Object, new Mock<INodeLifetime>().Object, this.consensusSettings, this.dateTimeProvider.Object);
 
             // Mock the coinviews "FetchCoinsAsync" method. We will use the "unspentOutputs" dictionary to track spendable outputs.
-            this.coinView.Setup(d => d.FetchCoins(It.IsAny<OutPoint[]>()))
-                .Returns((OutPoint[] txIds) =>
+            this.coinView.Setup(d => d.FetchCoins(It.IsAny<IReadOnlyCollection<OutPoint>>()))
+                .Returns((IReadOnlyCollection<OutPoint> txIds) =>
                 {
                     var result = new FetchCoinsResponse();
 
-                    for (int i = 0; i < txIds.Length; i++)
+                    foreach(var txId in txIds)
                     {
-                        unspentOutputs.TryGetValue(txIds[i], out UnspentOutput unspent);
-                        result.UnspentOutputs.Add(txIds[i], unspent);
+                        unspentOutputs.TryGetValue(txId, out UnspentOutput unspent);
+                        result.UnspentOutputs.Add(txId, unspent);
                     }
 
                     return result;

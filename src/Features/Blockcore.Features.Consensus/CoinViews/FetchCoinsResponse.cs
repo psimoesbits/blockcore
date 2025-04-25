@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using Blockcore.Consensus.TransactionInfo;
 using Blockcore.Utilities;
 
@@ -11,11 +12,11 @@ namespace Blockcore.Features.Consensus.CoinViews
     public class FetchCoinsResponse
     {
         /// <summary>Unspent outputs of the requested transactions.</summary>
-        public Dictionary<OutPoint, UnspentOutput> UnspentOutputs { get; private set; }
+        public IDictionary<OutPoint, UnspentOutput> UnspentOutputs { get; private set; }
 
         public FetchCoinsResponse()
         {
-            this.UnspentOutputs = new Dictionary<OutPoint, UnspentOutput>();
+            this.UnspentOutputs = new ConcurrentDictionary<OutPoint, UnspentOutput>();
         }
     }
 }
